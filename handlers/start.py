@@ -14,4 +14,4 @@ async def cmd_start(message: types.Message):
         ],
         resize_keyboard=True
     )
-    await message.answer("Вітаю! Виберіть опцію:", reply_markup=keyboard)
+    await message.answer("Шо ти галава нажимай далі, на кнопки🙄", reply_markup=keyboard)

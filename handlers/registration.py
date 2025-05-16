@@ -1,15 +1,17 @@
 from aiogram import Router, types, F
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 
 router = Router()
 
-@router.message(F.text.lower().strip() == "реєстрація")
+@router.message(F.text == "Реєстрація")
 async def start_registration(message: types.Message):
     print(f"Received: {message.text}")
-    questions = [
-        "Як вас звати?",
-        "Виберіть вік: 18-25 / 26-35 / 36+",
-        "Опишіть свій досвід (якщо є):"
-    ]
-    for q in questions:
-        await message.answer("Початок реєстрації. Відповідайте на питання:\n1. " + q)
+    if not is_correct_text(message.text):
+        await message.answer(
+            "Error!"
+        )
+        return
+    await message.answer("Enter name: ",
+                         parse_mode="HTML",
+                         reply_markup=ReplyKeyboardRemove())
+    
