@@ -16,7 +16,7 @@ def is_correct_text(text):
     only_symbols = re.fullmatch(r'[\W_]+', text)
     return bool(contains_letters) and not only_symbols
 
-@router.message(F.text== "Реєстрація")
+@router.message(F.text == "Реєстрація")
 async def start_registration(message: types.Message, state: FSMContext):
     try:
         print(f"Received: {message.text}")
@@ -34,12 +34,16 @@ async def start_registration(message: types.Message, state: FSMContext):
 async def process_name(message: types.Message, state: FSMContext):
     print(f"Processing name: {message.text}")
     try:
-        name = message.text.strip()
+        name = message.text
         if not is_correct_text(name):
-            await message.answer("Not accepted")
+            await message.answer("Bad name")
             return
-
-        await message.answer(f"Hello: {name}, now choose university:",
+        parts = message.text.strip().split()
+        if len(parts) < 2 or len(parts) > 2:
+            await message.answer("Incorrect data")
+            return
+        await state.update_data(name=message.text)
+        await message.answer("Hello: <b>{}</b>!, now choose university:".format(parts[0]),
                             reply_markup=get_uni_kb(),
                             parse_mode="HTML" 
                             )
@@ -54,16 +58,15 @@ async def process_name(message: types.Message, state: FSMContext):
 async def finish(message: types.Message, state: FSMContext):
     print("Finishing")
     try:
-        if not is_correct_text(message.text):
+        if message.text in ["Більше інфи", "Лінка на групу для пошуку тімки", "Моя команда"]:
             await message.answer("Not accepted")
             return
         await message.answer(
             "Тебе зареєстровано",
-            
             parse_mode="HTML",
             reply_markup=main_menu_kb()
         )
-
+        await state.clear()
     except Exception as e:
         await message.answer("An error occurred")
         await print(f"An error occurred: {str(e)}")
