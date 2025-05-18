@@ -6,7 +6,7 @@ router = Router()
 
 @router.message(Command("start"))
 async def cmd_start(message: types.Message):
-    # клава
+    # Keyboard
     keyboard = ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="Реєстрація")],
