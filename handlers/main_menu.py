@@ -3,7 +3,7 @@ from aiogram.types import ReplyKeyboardRemove
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 import re
-from keyboards.registration import main_menu_kb
+from keyboards.team import get_not_team_kb, get_have_team_kb
 
 
 router = Router()
@@ -23,9 +23,17 @@ async def get_link(message: types.Message, state: FSMContext):
 async def get_team(message: types.Message, state: FSMContext):
     try:
         await state.clear()
-        if 'нема команди':
-            await message.answer("Enter name:", parse_mode="HTML", reply_markup=ReplyKeyboardRemove())
-
+        if 'have team':
+            await message.answer(
+                "",
+                parse_mode="HTML",
+                reply_markup=get_have_team_kb()
+            )
+        await message.answer(
+            "",
+            parse_mode="HTML",
+            reply_markup=get_not_team_kb()
+        )
         current_state = await state.get_state()
         print(f"State after setting: {current_state}")
     except Exception as e:
