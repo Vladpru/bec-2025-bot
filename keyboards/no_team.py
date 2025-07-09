@@ -1,6 +1,5 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
-
 def get_not_team_kb():
     return ReplyKeyboardMarkup(
         keyboard=[
