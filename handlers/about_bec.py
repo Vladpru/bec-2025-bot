@@ -2,8 +2,6 @@ from aiogram import Router, types, F
 from aiogram.fsm.context import FSMContext
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
-import re
-
 router = Router()
 
 @router.message(F.text.lower().strip() == "більше про івент")

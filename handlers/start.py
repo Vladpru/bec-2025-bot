@@ -6,7 +6,6 @@ router = Router()
 
 @router.message(Command("start"))
 async def cmd_start(message: types.Message):
-    # Keyboard
     keyboard = ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="Реєстрація")],
@@ -14,4 +13,14 @@ async def cmd_start(message: types.Message):
         ],
         resize_keyboard=True
     )
-    await message.answer("Шо ти галава нажимай далі, на кнопки🙄", reply_markup=keyboard)
+    if True:
+        await message.answer(
+            text=("Привіт!👋\n\n"
+                "Я – бот <b>BEC</b> й допоможу тобі дізнатися про всі наші активності\n\n"
+                "Щоб розпочати наше знайомство натисни <b>«Старт 🚀»</b>!"), 
+            reply_markup=keyboard, 
+            parse_mode="HTML"
+        )
+    else:
+        pass
+
