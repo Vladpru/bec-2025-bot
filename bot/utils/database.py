@@ -15,14 +15,17 @@ async def get_database():
     db = client["ejf-2025-bot"]
     return db
 
-async def save_user_data(user_id, user_name, name, course, university, speciality):
+async def save_user_data(user_id, user_name, name, course, university, speciality, where_know, phone, team):
     user_data = {
         "telegram_id": user_id,
         "username": user_name,
         "name": name,
         "course": course,
         "university": university,
-        "speciality": speciality
+        "speciality": speciality,
+        "where_know": where_know,
+        "phone": phone,
+        "team": team
     }
 
     await users_collection.update_one(
@@ -30,6 +33,23 @@ async def save_user_data(user_id, user_name, name, course, university, specialit
         {"$set": user_data},       # Дані для оновлення
         upsert=True                # Додати документ, якщо він не існує
     )
+
+async def save_team_data(team_id, team_name, category, password, technologies, members):
+    team_data = {
+        "team_id": team_id,
+        "team_name": team_name,
+        "category": category,
+        "password": password,
+        "technologies": technologies,
+        "members": members
+    }
+    teams_collection = db["teams"]
+    await teams_collection.update_one(
+        {"team_id": team_id},
+        {"$set": team_data},
+        upsert=True
+    )
+
 async def add_user(user_data: dict):
     existing = await users_collection.find_one({"telegram_id": user_data["telegram_id"]})
     if not existing:

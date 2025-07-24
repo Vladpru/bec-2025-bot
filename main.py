@@ -3,7 +3,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from config import load_config
 from bot.middleware.check_user import AuthMiddleware
-from bot.handlers import registration, start 
+from bot.handlers import registration, start, main_menu, create_team
 from bot.utils.database import get_database
 
 config = load_config()
@@ -21,6 +21,8 @@ async def main():
     dp.include_routers(
         start.router,
         registration.router,
+        main_menu.router,
+        create_team.router,
     )
     
     await bot.delete_webhook(drop_pending_updates=True)

@@ -1,13 +1,22 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
+
 def get_not_team_kb():
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="Інфа про команду")], 
-            [KeyboardButton(text="Тестове завдання")], 
-            [KeyboardButton(text="змінити стек технологій")], 
+            [KeyboardButton(text="Створити команду")], 
+            [KeyboardButton(text="Знайти команду")], 
+            [KeyboardButton(text="Лінка на групу для пошуку команди")],
             [KeyboardButton(text="CV")],
-            [KeyboardButton(text="вийти з команди")],
+        ],
+        resize_keyboard=True
+    )
+
+def get_category_kb():
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="Team Design")], 
+            [KeyboardButton(text="Innovation Design")],
         ],
         resize_keyboard=True
     )

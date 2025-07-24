@@ -3,7 +3,7 @@ from aiogram.types import ReplyKeyboardRemove
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 import re
-from bot.keyboards.registration import get_uni_kb, main_menu_kb, get_course_kb
+from bot.keyboards.registration import get_uni_kb, main_menu_kb, get_course_kb, where_kb, get_phone_kb
 from bot.utils.database import save_user_data
 
 router = Router()
@@ -13,6 +13,8 @@ class Registration(StatesGroup):
     course = State()
     university = State()
     speciality = State()
+    where_know = State()
+    phone = State()
 
 def is_correct_text(text):
     contains_letters = re.search(r'[a-zA-Zа-яА-ЯіІїЇєЄґҐ]', text)
@@ -39,7 +41,7 @@ async def process_name(message: types.Message, state: FSMContext):
 
     parts = name.split()
     if len(parts) != 2:
-        await message.answer("📝 Введи Ім’я та Прізвище (через пробіл).")
+        await message.answer("📝 Введи Ім’я та Прізвище (через пробіл). треба так ім'я прізвище")
         return
 
     await state.update_data(name=name)
@@ -67,7 +69,8 @@ async def ask_university_or_finish(message: types.Message, state: FSMContext):
             name=data["name"],
             course=data["course"],
             university="Не вказано",
-            speciality="Не вказано"
+            speciality="Не вказано",
+            team='-'
         )
         await message.answer(
             "Чудово, тебе зареєстровано. 🎉\n\n"
@@ -101,13 +104,46 @@ async def ask_speciality(message: types.Message, state: FSMContext):
     await state.set_state(Registration.speciality)
 
 
+
 @router.message(Registration.speciality)
-async def finish_registration(message: types.Message, state: FSMContext):
+async def ask_where(message: types.Message, state: FSMContext):
     if not is_correct_text(message.text):
         await message.answer("⚠️ Схоже, що дані введені неправильно. Спробуй ще раз.")
         return
 
     await state.update_data(speciality=message.text)
+    data = await state.get_data()
+
+    await message.answer(
+        "✅ звідки ти знаєш нас?",
+        parse_mode="HTML",
+        reply_markup=where_kb()
+    )
+    await state.set_state(Registration.where_know)
+    
+
+@router.message(Registration.where_know)
+async def ask_phone(message: types.Message, state: FSMContext):
+    text = message.text.strip()
+
+    if text in ["інше"]:
+        await message.answer("Напиши звідки:", reply_markup=ReplyKeyboardRemove())
+        return
+
+    await state.update_data(where_know=message.text)
+
+    await message.answer(
+        "Дай свій номер!!!!",
+        reply_markup=get_phone_kb()
+    )
+    await state.set_state(Registration.phone)
+
+
+@router.message(Registration.phone)
+async def finish_registration(message: types.Message, state: FSMContext):
+    phone_number = message.contact.phone_number
+    await state.update_data(phone=phone_number)
+
     data = await state.get_data()
 
     await save_user_data(
@@ -116,13 +152,17 @@ async def finish_registration(message: types.Message, state: FSMContext):
         name=data["name"],
         course=data["course"],
         university=data["university"],
-        speciality=data["speciality"]
+        speciality=data["speciality"],
+        where_know=data["where_know"],
+        phone=phone_number,
+        team='-'
     )
 
     await message.answer(
-        "✅ Чудово, тебе зареєстровано. 🎉\n\n"
-        "Зараз на панелі ти бачиш <b>розділи</b> – тисни, щоб дізнатись більше 🔎.",
+        "Чудово, тебе зареєстровано. 🎉\n\n"
+        "Тепер ти можеш перейти до <b>меню</b> і дізнатися більше 🔎.",
         parse_mode="HTML",
         reply_markup=main_menu_kb()
     )
     await state.clear()
+
