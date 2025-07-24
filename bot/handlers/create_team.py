@@ -50,15 +50,18 @@ async def process_team_check_password(message: types.Message, state: FSMContext)
     data = await state.get_data()
     if data["password"] != message.text:
         await message.answer("Неправильний пароль для команди. Спробуй ще раз:")
+        await state.set_state(CreateTeam.check_password)
         return
 
+    import uuid
+    team_id = str(uuid.uuid4())
     await save_team_data(
-        user_id=message.from_user.id,
-        user_name=message.from_user.username,
+        team_id=team_id,
         team_name=data["team_name"],
         category=data["category"],
+        password=data["password"],
         technologies=data["technologies"],
-        password=data["password"]
+        members_telegram_ids=[message.from_user.id]
     )
 
     await message.answer(

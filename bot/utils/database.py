@@ -12,7 +12,7 @@ cv_collection = db["cv"]
 
 async def get_database():
     client = AsyncIOMotorClient(config.mongo_uri)
-    db = client["ejf-2025-bot"]
+    db = client["bec-2025-bot"]
     return db
 
 async def save_user_data(user_id, user_name, name, course, university, speciality, where_know, phone, team):
@@ -34,7 +34,13 @@ async def save_user_data(user_id, user_name, name, course, university, specialit
         upsert=True                # Додати документ, якщо він не існує
     )
 
-async def save_team_data(team_id, team_name, category, password, technologies, members):
+async def save_team_data(team_id, team_name, category, password, technologies, members_telegram_ids):
+    members = []
+    for telegram_id in members_telegram_ids:
+        user = await users_collection.find_one({"telegram_id": telegram_id})
+        if user and "_id" in user:
+            members.append(user["_id"])
+    
     team_data = {
         "team_id": team_id,
         "team_name": team_name,
@@ -55,10 +61,10 @@ async def add_user(user_data: dict):
     if not existing:
         await users_collection.insert_one(user_data)
 
-async def get_user(user_id: int):
+async def get_user(user_id):
     return await users_collection.find_one({"telegram_id": user_id})
 
-async def add_cv(user_id: int, cv_file_path: str = None, position: str = None, 
+async def add_cv(user_id, cv_file_path: str = None, position: str = None, 
                  languages: list = None, education: str = None, experience: str = None, 
                  skills: list = None, about: str = None, contacts: dict = None):
     user = await users_collection.find_one({"telegram_id": user_id})
