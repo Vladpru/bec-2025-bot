@@ -1,4 +1,5 @@
-from . import start, registration, about_bec, main_menu
+from . import start
+from . import registration, about_bec, main_menu
 
 def setup_routers(dp):
     dp.include_routers(

@@ -21,3 +21,13 @@ def main_menu_kb():
         resize_keyboard=True
     )
 
+def get_course_kb():
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="🔹 1 курс"), KeyboardButton(text="🔹2 курс")],
+            [KeyboardButton(text="🔹 3 курс"), KeyboardButton(text="🔹 4 курс")],
+            [KeyboardButton(text="🔹 Магістратура")],
+            [KeyboardButton(text="🔹 Не навчаюсь"), KeyboardButton(text="🔹 Ще у школі/коледжі")]
+        ],
+        resize_keyboard=True
+    )

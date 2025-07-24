@@ -1,10 +1,10 @@
 from aiogram import Router, types
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
-from aiogram.filters import Command
+from aiogram.filters import CommandStart
 
 router = Router()
 
-@router.message(Command("start"))
+@router.message(CommandStart())
 async def cmd_start(message: types.Message):
     keyboard = ReplyKeyboardMarkup(
         keyboard=[
