@@ -4,7 +4,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from bot.keyboards.team import get_have_team_kb
 from bot.keyboards.no_team import get_category_kb
-from bot.utils.database import save_team_data
+from bot.utils.database import save_team_data, update_user_team
+from uuid import uuid4
 
 router = Router()
 
@@ -29,6 +30,10 @@ async def process_team_name(message: types.Message, state: FSMContext):
 
 @router.message(CreateTeam.category)
 async def process_category(message: types.Message, state: FSMContext):
+    valid_categories = ["Team Design", "Innovative Design"]
+    if message.text not in valid_categories:
+        await message.answer("Будь ласка, оберіть одну з категорій: Team Design або Innovative Design.", reply_markup=get_category_kb())
+        return
     await state.update_data(category=message.text)
     await message.answer("Введи технології, з якими працює команда (через кому):", reply_markup=ReplyKeyboardRemove())
     await state.set_state(CreateTeam.technologies)
@@ -53,8 +58,7 @@ async def process_team_check_password(message: types.Message, state: FSMContext)
         await state.set_state(CreateTeam.check_password)
         return
 
-    import uuid
-    team_id = str(uuid.uuid4())
+    team_id = str(uuid4())
     await save_team_data(
         team_id=team_id,
         team_name=data["team_name"],
@@ -68,4 +72,6 @@ async def process_team_check_password(message: types.Message, state: FSMContext)
         f"Команда '{data['team_name']}' створена!\nКатегорія: {data['category']}\nТехнології: {data['technologies']}",
         reply_markup=get_have_team_kb()
     )
+    await update_user_team(user_id=message.from_user.id, team_id=team_id)
+
     await state.clear()

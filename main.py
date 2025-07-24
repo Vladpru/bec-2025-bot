@@ -23,7 +23,7 @@ async def main():
         registration.router,
         main_menu.router,
         create_team.router,
-        team.route,
+        team.router,
     )
     
     await bot.delete_webhook(drop_pending_updates=True)

@@ -2,6 +2,7 @@ from aiogram import Router, types
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.filters import CommandStart
 from bot.keyboards.team import get_have_team_kb
+from bot.keyboards.no_team import get_not_team_kb
 from bot.utils.database import get_user
 
 router = Router()
@@ -12,9 +13,10 @@ async def cmd_start(message: types.Message):
     user_id = message.from_user.id
     user = await get_user(user_id)
     if user:
+
         await message.answer(
             text="Знову привіт! 👋 Ви вже зареєстровані.",
-            reply_markup=get_have_team_kb()
+            reply_markup=get_not_team_kb()
         )
     else:
         keyboard = ReplyKeyboardMarkup(

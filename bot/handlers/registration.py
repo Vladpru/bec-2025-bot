@@ -21,7 +21,6 @@ def is_correct_text(text):
     only_symbols = re.fullmatch(r'[\W_]+', text)
     return bool(contains_letters) and not only_symbols
 
-
 @router.message(F.text == "Реєстрація")
 async def start_registration(message: types.Message, state: FSMContext):
     await message.answer(

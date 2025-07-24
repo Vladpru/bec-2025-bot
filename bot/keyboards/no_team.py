@@ -16,7 +16,7 @@ def get_category_kb():
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="Team Design")], 
-            [KeyboardButton(text="Innovation Design")],
+            [KeyboardButton(text="Innovative Design")],
         ],
         resize_keyboard=True
     )

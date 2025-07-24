@@ -1,9 +1,47 @@
 from aiogram import Router, types, F
-from aiogram.types import ReplyKeyboardRemove
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
-from keyboards.team import get_have_team_kb
-from keyboards.no_team import get_not_team_kb
+from aiogram.types import ReplyKeyboardRemove
+from bot.utils.database import get_team, exit_team
+from bot.keyboards.registration import main_menu_kb
 
 router = Router()
+
+@router.message(F.text == "Інфа про команду")
+async def start_registration(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+    team = await get_team(user_id)
+    await message.answer(
+        f"Команда '{team['team_name']}' створена!\nКатегорія: {team['category']}\nТехнології: {team['technologies']}",
+        parse_mode="HTML",
+    )
+
+@router.message(F.text == "вийти з команди")
+async def start_registration(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+    if await exit_team(user_id):
+        await message.answer(
+            "Успішно вийшов",
+            parse_mode="HTML",
+            reply_markup=main_menu_kb()
+        )
+    else:
+        await message.answer(
+            "Якась помилка",
+            parse_mode="HTML"
+        )
+        
+@router.message(F.text == "Тестове завдання")
+async def start_registration(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+    if await exit_team(user_id):
+        await message.answer(
+            "Успішно вийшов",
+            parse_mode="HTML",
+            reply_markup=main_menu_kb()
+        )
+    else:
+        await message.answer(
+            "Якась помилка",
+            parse_mode="HTML"
+        )
 

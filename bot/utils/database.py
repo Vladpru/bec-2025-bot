@@ -8,6 +8,7 @@ client = AsyncIOMotorClient(config.mongo_uri)
 db = client["bec-2025-bot"]  
 
 users_collection = db["users"]
+teams_collection = db["teams"]
 cv_collection = db["cv"]
 
 async def get_database():
@@ -50,11 +51,7 @@ async def save_team_data(team_id, team_name, category, password, technologies, m
         "members": members
     }
     teams_collection = db["teams"]
-    await teams_collection.update_one(
-        {"team_id": team_id},
-        {"$set": team_data},
-        upsert=True
-    )
+    await teams_collection.insert_one(team_data)
 
 async def add_user(user_data: dict):
     existing = await users_collection.find_one({"telegram_id": user_data["telegram_id"]})
@@ -63,6 +60,43 @@ async def add_user(user_data: dict):
 
 async def get_user(user_id):
     return await users_collection.find_one({"telegram_id": user_id})
+
+async def get_team(user_id):
+    user = await get_user(user_id)
+    return await teams_collection.find_one({"members": user['_id']})
+
+async def exit_team(user_id) -> bool:
+    user = await get_user(user_id)
+    if not user:
+        return False
+    
+    user_object_id = user["_id"]
+
+    res = await teams_collection.update_one(
+        {"members": user_object_id},
+        {"$pull": {"members": user_object_id}} # видаляємо конкретний _id
+    )
+
+    await users_collection.update_one(
+        {"telegram_id": user["telegram_id"]},
+        {"$set": {"team": "-"}}
+    )
+
+    if res.matched_count > 0: # якщо > 0 то документ знайдено
+        team = await teams_collection.find_one({"members": user_object_id})
+        if not team or not team.get("members"):  # Якщо members порожній
+            await teams_collection.delete_one({"members": user_object_id})        
+        return True
+    return False
+
+async def update_user_team(user_id, team_id):
+    await users_collection.update_one(
+        {"telegram_id": user_id},
+        {"$set": {"team": team_id}},  # Зберігаємо team_id як рядок
+        upsert=True
+    )  
+
+#------------------------------------------------------------------------------------------------
 
 async def add_cv(user_id, cv_file_path: str = None, position: str = None, 
                  languages: list = None, education: str = None, experience: str = None, 
@@ -96,7 +130,6 @@ async def get_all_users():
     return users_collection.find({})
 async def count_all_users():
     return await users_collection.count_documents({})
-
 
 async def update_cv_file_path(user_id: int, file_id: str) -> bool:
     result = await cv_collection.update_one(
