@@ -13,13 +13,33 @@ class Team(StatesGroup):
 
 @router.message(F.text == "Інфа про команду")
 async def info_team_handler(message: types.Message, state: FSMContext):
+    from bot.utils.database import users_collection  # імпорт тут, щоб уникнути циклічних імпортів
     user_id = message.from_user.id
     team = await get_team(user_id)
     if team:
+        # Отримати список ObjectId учасників
+        member_ids = team.get("members", [])
+        # Витягнути username кожного учасника
+        usernames = []
+        if member_ids:
+            member = users_collection.find({"_id": {"$in": member_ids}})
+            async for user in member:
+                username = user.get("username")
+                name = user.get("name")
+                if username:
+                    usernames.append(f"@{username}")
+                elif name:
+                    usernames.append(name)
+                else:
+                    usernames.append("Без імені")
+        members_str = ", ".join(usernames) if usernames else "Немає учасників"
         await message.answer(
-            f"Команда '{team['team_name']}'!\nКатегорія: {team['category']}\nТехнології: {team['technologies']}",
-                parse_mode="HTML",
-            )
+            f"Команда '{team['team_name']}'!\n\n"
+            f"Категорія: {team['category']}\n\n"
+            f"Технології: {team['technologies']}\n\n"
+            f"Учасники: {members_str}",
+            parse_mode="HTML",
+        )
     else:
         await message.answer(
             "Технічна помилка, спробуйте пізніше",

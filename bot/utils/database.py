@@ -50,7 +50,9 @@ async def save_team_data(team_id, team_name, category, password, technologies, m
         "category": category,
         "password": password,
         "technologies": technologies,
-        "members": members
+        "members": members,
+        "is_participant": False,
+        "test_task_status": False
     }
     teams_collection = db["teams"]
     await teams_collection.insert_one(team_data)
