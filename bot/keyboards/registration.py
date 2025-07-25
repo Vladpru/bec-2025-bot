@@ -48,3 +48,12 @@ def get_phone_kb():
         ],
         resize_keyboard=True
     )
+
+def get_reg_kb():
+    return ReplyKeyboardMarkup(
+            keyboard=[
+                [KeyboardButton(text="Реєстрація")],
+                [KeyboardButton(text="Більше про івент")]
+            ],
+            resize_keyboard=True
+        )

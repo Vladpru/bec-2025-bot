@@ -14,6 +14,7 @@ class Registration(StatesGroup):
     university = State()
     speciality = State()
     where_know = State()
+    custom_where_know = State()
     phone = State()
 
 def is_correct_text(text):
@@ -30,17 +31,16 @@ async def start_registration(message: types.Message, state: FSMContext):
     )
     await state.set_state(Registration.name)
 
-
 @router.message(Registration.name)
 async def process_name(message: types.Message, state: FSMContext):
     name = message.text.strip()
     if not is_correct_text(name):
-        await message.answer("🚫 Некоректне ім’я. Спробуй ще раз.")
+        await message.answer("🚫 Некоректне ім’я. Спробуй ще раз. Використовуй лише літери.")
         return
 
     parts = name.split()
     if len(parts) != 2:
-        await message.answer("📝 Введи Ім’я та Прізвище (через пробіл). треба так ім'я прізвище")
+        await message.answer("📝 Введи Ім’я та Прізвище (через пробіл). Формат: ім'я прізвище")
         return
 
     await state.update_data(name=name)
@@ -51,16 +51,18 @@ async def process_name(message: types.Message, state: FSMContext):
     )
     await state.set_state(Registration.course)
 
-
 @router.message(Registration.course)
 async def ask_university_or_finish(message: types.Message, state: FSMContext):
-    if not is_correct_text(message.text):
-        await message.answer("⚠️ Некоректні дані. Спробуй ще раз.")
+    courses = ["🔹 1 курс", "🔹 2 курс", "🔹 3 курс", "🔹 4 курс", "🔹 Магістратура"]
+    special_cases = ["🔹 Не навчаюсь", "🔹 Ще у школі/коледжі"]
+
+    if message.text not in courses + special_cases:
+        await message.answer("⚠️ Некоректні дані. Обери курс зі списку.")
         return
 
     await state.update_data(course=message.text)
 
-    if message.text in ["🔹 Не навчаюсь", "🔹 Ще у школі/коледжі"]:
+    if message.text in special_cases:
         data = await state.get_data()
         await save_user_data(
             user_id=message.from_user.id,
@@ -82,17 +84,13 @@ async def ask_university_or_finish(message: types.Message, state: FSMContext):
         await message.answer("Оберіть свій університет:", reply_markup=get_uni_kb())
         await state.set_state(Registration.university)
 
-
 @router.message(Registration.university)
 async def ask_speciality(message: types.Message, state: FSMContext):
     text = message.text.strip()
+    unis = ["🎓 НУ “ЛП”", "🎓 ЛНУ ім. І. Франка", "🎓 УКУ", "🎓 ЛНАМ", "🎓 ЛДУБЖД", "🎓 ІТ Степ Університет", "🎓 Інший"]
 
-    if text in ["🎓 Інший"]:
-        await message.answer("Напиши назву свого університету:", reply_markup=ReplyKeyboardRemove())
-        return  # залишаємо той самий стан (university)
-
-    if not is_correct_text(text):
-        await message.answer("⚠️ Це не схоже на назву університету. Спробуй ще раз!")
+    if message.text not in unis:
+        await message.answer("⚠️ Некоректні дані. Обери університет зі списку.")
         return
 
     await state.update_data(university=text)
@@ -102,12 +100,10 @@ async def ask_speciality(message: types.Message, state: FSMContext):
     )
     await state.set_state(Registration.speciality)
 
-
-
 @router.message(Registration.speciality)
 async def ask_where(message: types.Message, state: FSMContext):
     if not is_correct_text(message.text):
-        await message.answer("⚠️ Схоже, що дані введені неправильно. Спробуй ще раз.")
+        await message.answer("⚠️ Схоже, що дані введені неправильно. Спробуй ще раз. Використовуй лише літери.")
         return
 
     await state.update_data(speciality=message.text)
@@ -119,27 +115,52 @@ async def ask_where(message: types.Message, state: FSMContext):
         reply_markup=where_kb()
     )
     await state.set_state(Registration.where_know)
-    
 
 @router.message(Registration.where_know)
 async def ask_phone(message: types.Message, state: FSMContext):
     text = message.text.strip()
 
-    if text in ["інше"]:
+    where = ["інста", "тікток", "постер", "інше"]
+
+    if message.text not in where:
+        await message.answer("⚠️ Некоректні дані. Обери опцію зі списку.")
+        return
+    if text == "інше":
+        await state.set_state(Registration.custom_where_know)
         await message.answer("Напиши звідки:", reply_markup=ReplyKeyboardRemove())
+        return
         return
 
     await state.update_data(where_know=message.text)
 
     await message.answer(
-        "Дай свій номер!!!!",
+        "Дай свій номер!!!!\nНатисни кнопку, щоб поділитися контактом.",
         reply_markup=get_phone_kb()
     )
     await state.set_state(Registration.phone)
+# Handle custom 'where_know' input
+@router.message(Registration.custom_where_know)
+async def process_custom_where_know(message: types.Message, state: FSMContext):
+    text = message.text.strip()
+    if not is_correct_text(text):
+        await message.answer("⚠️ Некоректна відповідь. Спробуй ще раз.")
+        return
 
+    await state.update_data(where_know=text)
+    await message.answer(
+        "Дай свій номер!!!!\nНатисни кнопку, щоб поділитися контактом.",
+        reply_markup=get_phone_kb()
+    )
+    await state.set_state(Registration.phone)
+    await state.set_state(Registration.phone)
 
 @router.message(Registration.phone)
 async def finish_registration(message: types.Message, state: FSMContext):
+    # Перевірка, чи надіслано контакт
+    if not message.contact or not message.contact.phone_number:
+        await message.answer("⚠️ Будь ласка, надішли свій номер через кнопку 'Поділитися контактом', або у форматі +38-xxx-xxx-xxxx")
+        return
+
     phone_number = message.contact.phone_number
     await state.update_data(phone=phone_number)
 
@@ -164,4 +185,3 @@ async def finish_registration(message: types.Message, state: FSMContext):
         reply_markup=main_menu_kb()
     )
     await state.clear()
-

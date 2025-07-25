@@ -3,6 +3,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.filters import CommandStart
 from bot.keyboards.team import get_have_team_kb
 from bot.keyboards.no_team import get_not_team_kb
+from bot.keyboards.registration import get_reg_kb
 from bot.utils.database import get_user
 
 router = Router()
@@ -19,17 +20,10 @@ async def cmd_start(message: types.Message):
             reply_markup=get_not_team_kb()
         )
     else:
-        keyboard = ReplyKeyboardMarkup(
-            keyboard=[
-                [KeyboardButton(text="Реєстрація")],
-                [KeyboardButton(text="Більше про івент")]
-            ],
-            resize_keyboard=True
-        )
         await message.answer(
             text=("Привіт!👋\n\n"
                   "Я – бот <b>BEC</b> й допоможу тобі дізнатися про всі наші активності\n\n"
                   "Щоб розпочати наше знайомство натисни <b>«Старт 🚀»</b>!"),
-            reply_markup=keyboard,
+            reply_markup=get_reg_kb(),
             parse_mode="HTML"
         )
