@@ -3,7 +3,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from config import load_config
 from bot.middleware.check_user import AuthMiddleware
-from bot.handlers import registration, start, main_menu, create_team, team, about_bec
+from bot.handlers import registration, start, main_menu, create_team, team, about_bec, find_team
 from bot.utils.database import get_database
 
 config = load_config()
@@ -24,6 +24,7 @@ async def main():
         registration.router,
         main_menu.router,
         create_team.router,
+        find_team.router,
         team.router,
     )
     

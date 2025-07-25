@@ -1,22 +1,33 @@
 from aiogram import Router, types, F
+from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.types import ReplyKeyboardRemove
-from bot.utils.database import get_team, exit_team
+from bot.utils.database import get_team, exit_team, change_stack
 from bot.keyboards.registration import main_menu_kb
+from bot.handlers.registration import is_correct_text
 
 router = Router()
 
+class Team(StatesGroup):
+    waiting_for_stack_input = State()
+
 @router.message(F.text == "Інфа про команду")
-async def start_registration(message: types.Message, state: FSMContext):
+async def info_team_handler(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
     team = await get_team(user_id)
-    await message.answer(
-        f"Команда '{team['team_name']}' створена!\nКатегорія: {team['category']}\nТехнології: {team['technologies']}",
-        parse_mode="HTML",
-    )
+    if team:
+        await message.answer(
+            f"Команда '{team['team_name']}'!\nКатегорія: {team['category']}\nТехнології: {team['technologies']}",
+                parse_mode="HTML",
+            )
+    else:
+        await message.answer(
+            "Технічна помилка, спробуйте пізніше",
+            parse_mode="HTML"
+        )
 
 @router.message(F.text == "вийти з команди")
-async def start_registration(message: types.Message, state: FSMContext):
+async def exit_team_handler(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
     if await exit_team(user_id):
         await message.answer(
@@ -26,22 +37,65 @@ async def start_registration(message: types.Message, state: FSMContext):
         )
     else:
         await message.answer(
-            "Якась помилка",
+            "Технічна помилка, спробуйте пізніше",
             parse_mode="HTML"
         )
         
 @router.message(F.text == "Тестове завдання")
-async def start_registration(message: types.Message, state: FSMContext):
+async def test_task_handler(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
     if await exit_team(user_id):
         await message.answer(
-            "Успішно вийшов",
+            "Поки тестового нема",
             parse_mode="HTML",
-            reply_markup=main_menu_kb()
         )
     else:
         await message.answer(
-            "Якась помилка",
+            "Технічна помилка, спробуйте пізніше",
             parse_mode="HTML"
         )
 
+@router.message(F.text == "змінити стек технологій")
+async def change_stack_handler(message: types.Message, state: FSMContext):
+    try:
+        await message.answer(
+            "Введіть новий стек технологій (через кому):",
+            parse_mode="HTML",
+            reply_markup=ReplyKeyboardRemove()
+        )
+        await state.set_state(Team.waiting_for_stack_input)
+    except Exception as e:
+        await message.answer(
+            "Виникла технічна помилка. Спробуйте ще раз пізніше.",
+            parse_mode="HTML"
+        )
+
+@router.message(Team.waiting_for_stack_input)
+async def process_stack_input(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+    stack = message.text.strip()
+    try:
+        if not is_correct_text(stack):
+            await message.answer(
+                "Некоректно введено стек технологій. Спробуйте ще раз.",
+                parse_mode="HTML"
+            )
+            return
+
+        if await change_stack(user_id, stack):
+            await message.answer(
+                "Стек технологій успішно змінено",
+                parse_mode="HTML",
+                reply_markup=main_menu_kb()
+            )
+            await state.clear()
+        else:
+            await message.answer(
+                "Некоректно введено стек технологій. Спробуйте ще раз.",
+                parse_mode="HTML"
+            )
+    except Exception as e:
+        await message.answer(
+            "Виникла технічна помилка при зміні стеку. Спробуйте ще раз пізніше.",
+            parse_mode="HTML"
+        )

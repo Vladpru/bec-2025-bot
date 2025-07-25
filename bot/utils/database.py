@@ -16,6 +16,8 @@ async def get_database():
     db = client["bec-2025-bot"]
     return db
 
+#------------------------------------------------------------------------------------------------
+
 async def save_user_data(user_id, user_name, name, course, university, speciality, where_know, phone, team):
     user_data = {
         "telegram_id": user_id,
@@ -52,6 +54,8 @@ async def save_team_data(team_id, team_name, category, password, technologies, m
     }
     teams_collection = db["teams"]
     await teams_collection.insert_one(team_data)
+
+#------------------------------------------------------------------------------------------------
 
 async def add_user(user_data: dict):
     existing = await users_collection.find_one({"telegram_id": user_data["telegram_id"]})
@@ -137,3 +141,58 @@ async def update_cv_file_path(user_id: int, file_id: str) -> bool:
         {"$set": {"cv_file_path": file_id}}
     )
     return result.matched_count > 0
+
+#------------------------------------------------------------------------------------------------
+
+async def get_team_by_name(team_name):
+    return await teams_collection.find_one({"team_name": team_name})
+
+async def add_user_to_team(user_id, team_id):
+    user = await users_collection.find_one({"telegram_id": user_id})
+    team = await teams_collection.find_one({"team_id": team_id})
+    if not user or not team:
+        return False
+    # Додаємо user до members, якщо його там ще нема
+    if user["_id"] not in team["members"]:
+        await teams_collection.update_one(
+            {"team_id": team_id},
+            {"$push": {"members": user["_id"]}}
+        )
+    # Оновлюємо поле team у user
+    await users_collection.update_one(
+        {"telegram_id": user_id},
+        {"$set": {"team": team_id}}
+    )
+    return True
+#------------------------------------------------------------------------------------------------
+
+async def is_user_in_team(user_id):
+    user = await users_collection.find_one({"telegram_id": user_id})
+    if not user:
+        return False
+    return user.get("team") not in ["-", None]
+
+async def get_team_by_user_id(user_id):
+    user = await users_collection.find_one({"telegram_id": user_id})
+    return await teams_collection.find_one({"members": user["_id"]})
+
+async def change_stack(user_id, stack):
+    user = await users_collection.find_one({"telegram_id": user_id})
+    if not user:
+        return False
+    
+    user_object_id = user["_id"]
+    team = await teams_collection.find_one({"members": user_object_id})
+    
+    if not team:
+        return False
+    
+    result = await teams_collection.update_one(
+        {"members": user_object_id},
+        {"$set": {"technologies": stack}}
+    )
+    return result.matched_count > 0
+
+async def is_user_registered(user_id):
+    user = await users_collection.find_one({"telegram_id": user_id})
+    return user is not None

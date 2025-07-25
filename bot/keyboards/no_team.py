@@ -1,6 +1,5 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
-
 def get_not_team_kb():
     return ReplyKeyboardMarkup(
         keyboard=[
@@ -12,11 +11,14 @@ def get_not_team_kb():
         resize_keyboard=True
     )
 
-def get_category_kb():
+def get_category_kb(with_back=False):
+    keyboard = [
+        [KeyboardButton(text="Team Design")],
+        [KeyboardButton(text="Innovative Design")],
+    ]
+    if with_back:
+        keyboard.append([KeyboardButton(text="⬅️ Назад")])
     return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="Team Design")], 
-            [KeyboardButton(text="Innovative Design")],
-        ],
+        keyboard=keyboard,
         resize_keyboard=True
     )
