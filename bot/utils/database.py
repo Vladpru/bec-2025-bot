@@ -28,7 +28,8 @@ async def save_user_data(user_id, user_name, name, course, university, specialit
         "speciality": speciality,
         "where_know": where_know,
         "phone": phone,
-        "team": team
+        "team": team,
+        "cv_file_path": None,
     }
 
     await users_collection.update_one(
@@ -36,6 +37,8 @@ async def save_user_data(user_id, user_name, name, course, university, specialit
         {"$set": user_data},       # Дані для оновлення
         upsert=True                # Додати документ, якщо він не існує
     )
+
+#------------------------------------------------------------------------------------------------
 
 async def save_team_data(team_id, team_name, category, password, technologies, members_telegram_ids):
     members = []
@@ -104,28 +107,6 @@ async def update_user_team(user_id, team_id):
 
 #------------------------------------------------------------------------------------------------
 
-async def add_cv(user_id, cv_file_path: str = None, position: str = None, 
-                 languages: list = None, education: str = None, experience: str = None, 
-                 skills: list = None, about: str = None, contacts: dict = None):
-    user = await users_collection.find_one({"telegram_id": user_id})
-    cv_data = {
-        "telegram_id": user_id,
-        "user_name": user["name"] if user else str(user_id),
-        "cv_file_path": cv_file_path,
-        "position": position,
-        "languages": languages,
-        "education": education,
-        "experience": experience,
-        "skills": skills,
-        "about": about,
-        "contacts": contacts
-    }
-    await cv_collection.update_one(
-        {"telegram_id": user_id},  
-        {"$set": cv_data},        
-        upsert=True               
-    )
-
 async def get_cv(user_id: int):
     return await cv_collection.find_one({"telegram_id": user_id})
 
@@ -136,13 +117,6 @@ async def get_all_users():
     return users_collection.find({})
 async def count_all_users():
     return await users_collection.count_documents({})
-
-async def update_cv_file_path(user_id: int, file_id: str) -> bool:
-    result = await cv_collection.update_one(
-        {"telegram_id": str(user_id)},
-        {"$set": {"cv_file_path": file_id}}
-    )
-    return result.matched_count > 0
 
 #------------------------------------------------------------------------------------------------
 
