@@ -95,12 +95,12 @@ async def process_stack_input(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
     stack = message.text.strip()
     try:
-        if not is_correct_text(stack):
-            await message.answer(
-                "Некоректно введено стек технологій. Спробуйте ще раз.",
-                parse_mode="HTML"
-            )
-            return
+        # if not is_correct_text(stack):
+        #     await message.answer(
+        #         "Некоректно введено стек технологій. Спробуйте ще раз.",
+        #         parse_mode="HTML"
+        #     )
+        #     return
 
         if await change_stack(user_id, stack):
             await message.answer(

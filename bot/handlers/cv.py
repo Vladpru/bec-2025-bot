@@ -5,16 +5,42 @@ from bot.keyboards.cv_keyboard import get_cv_kb
 from bot.handlers.registration import is_correct_text
 from bot.utils.cv_db import update_cv_file_path, add_cv
 from bot.keyboards.team import get_have_team_kb
+from bot.keyboards.no_team import get_not_team_kb
+from bot.utils.database import users_collection
 
 router = Router()
 
 @router.message(F.text == "CV")
-async def cv_start(message: types.Message, state: FSMContext):
-    await message.answer(
-        "У цьому меню ви зможете відправити CV! Воно може зацікавити роботодавців, що може змінити ваше життя =)",
-        parse_mode="HTML",
-        reply_markup=get_cv_kb()
-    )
+async def cv_start(message: types.Message):
+    user_id = message.from_user.id
+    user_data = await users_collection.find_one({"telegram_id": user_id})
+    if user_data and user_data.get("cv_file_path") is not None:
+        await message.answer(
+            "Ви вже відправили CV, хочете ще раз відправити?",
+            parse_mode="HTML",
+            reply_markup=get_cv_kb()
+        )
+    else:
+        await message.answer(
+            "У цьому меню ви зможете відправити CV! Воно може зацікавити роботодавців, що може змінити ваше життя =)",
+            parse_mode="HTML",
+            reply_markup=get_cv_kb()
+        )
+
+@router.message(F.text == "Назад")
+async def cv_back(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+    user_data = await users_collection.find_one({"telegram_id": user_id})
+    if hasattr(user_data, "team") and user_data.team != '-':
+        await message.answer(
+            "Ви повернулись назад до меню",  
+            reply_markup=get_have_team_kb()
+        )
+    else:
+        await message.answer(
+            "Ви повернулись назад до меню",  
+            reply_markup=get_not_team_kb()
+        )
 
 @router.message(F.text == "📤 Надіслати готове CV")
 async def cv_send(message: types.Message, state: FSMContext):   
@@ -56,32 +82,3 @@ async def handle_cv_file(message: types.Message):
     await update_cv_file_path(message.from_user.id, file_id)
     await add_cv(user_id=user_id, cv_file_id=file_id)
     await message.answer("✅ CV завантажено! 🎉", reply_markup=get_have_team_kb())
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-@router.message(F.text == "Створити CV")
-async def cv_create(message: types.Message, state: FSMContext):
-    if not is_correct_text(message.text):
-        await message.answer(
-            "⚠️ Схоже, що дані введені неправильно. Будь ласка, спробуй ще раз!"
-        )
-        return
-    await message.answer(
-        "Щоб створити CV, будь ласка, надішліть мені своє ім'я та прізвище.",
-        reply_markup=ReplyKeyboardRemove()
-    )
-    await state.set_state("cv_create")

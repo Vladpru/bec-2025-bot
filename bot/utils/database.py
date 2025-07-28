@@ -82,8 +82,8 @@ async def exit_team(user_id) -> bool:
     user_object_id = user["_id"]
 
     res = await teams_collection.update_one(
-        {"members": user_object_id},
-        {"$pull": {"members": user_object_id}} # видаляємо конкретний _id
+        {"members": user_object_id}, 
+        {"$pull": {"members": user_object_id}}  
     )
 
     await users_collection.update_one(
@@ -91,17 +91,17 @@ async def exit_team(user_id) -> bool:
         {"$set": {"team": "-"}}
     )
 
-    if res.matched_count > 0: # якщо > 0 то документ знайдено
+    if res.matched_count > 0:
         team = await teams_collection.find_one({"members": user_object_id})
-        if not team or not team.get("members"):  # Якщо members порожній
-            await teams_collection.delete_one({"members": user_object_id})        
+        if team and (not team.get("members") or len(team.get("members", [])) == 0):
+            await teams_collection.delete_one({"_id": team["_id"]})
         return True
     return False
 
 async def update_user_team(user_id, team_id):
     await users_collection.update_one(
         {"telegram_id": user_id},
-        {"$set": {"team": team_id}},  # Зберігаємо team_id як рядок
+        {"$set": {"team": team_id}},  
         upsert=True
     )  
 
