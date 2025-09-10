@@ -13,13 +13,11 @@ class Team(StatesGroup):
 
 @router.message(F.text == "Інфа про команду")
 async def info_team_handler(message: types.Message, state: FSMContext):
-    from bot.utils.database import users_collection  # імпорт тут, щоб уникнути циклічних імпортів
+    from bot.utils.database import users_collection
     user_id = message.from_user.id
     team = await get_team(user_id)
     if team:
-        # Отримати список ObjectId учасників
         member_ids = team.get("members", [])
-        # Витягнути username кожного учасника
         usernames = []
         if member_ids:
             member = users_collection.find({"_id": {"$in": member_ids}})

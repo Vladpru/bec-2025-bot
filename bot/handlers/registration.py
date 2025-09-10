@@ -1,31 +1,45 @@
 from aiogram import Router, types, F
-from aiogram.types import ReplyKeyboardRemove
+from aiogram.types import ReplyKeyboardRemove, FSInputFile
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 import re
-from bot.keyboards.registration import get_uni_kb, main_menu_kb, get_course_kb, where_kb, get_phone_kb
+from bot.keyboards.registration import get_uni_kb, main_menu_kb, get_course_kb, where_kb, get_reg_kb
 from bot.utils.database import save_user_data
+
 
 router = Router()
 
 class Registration(StatesGroup):
     name = State()
+    age = State()
     course = State()
     university = State()
     speciality = State()
-    where_know = State()
-    custom_where_know = State()
-    phone = State()
+    expect_custom_uni = State()
+    email = State()
+    approval = State() 
 
 def is_correct_text(text):
-    contains_letters = re.search(r'[a-zA-Zа-яА-ЯіІїЇєЄґҐ]', text)
-    only_symbols = re.fullmatch(r'[\W_]+', text)
-    return bool(contains_letters) and not only_symbols
+    text = text.strip()
+    if not text:
+        return False
+    return bool(re.search(r'[a-zA-Zа-яА-ЯіІїЇєЄґҐ]', text)) and not re.fullmatch(r'[\W_]+', text)
 
-@router.message(F.text == "Реєстрація")
+def is_valid_age(text):
+    return text.isdigit() and 13 <= int(text) <= 79
+
+def is_valid_email(text):
+    return bool(re.fullmatch(r"[^@ \t\r\n]+@[^@ \t\r\n]+\.[^@ \t\r\n]+", text.strip()))
+
+@router.message(F.text == "Зареєструватися на змагання💡")
 async def start_registration(message: types.Message, state: FSMContext):
-    await message.answer(
-        "📝 Введи Ім’я та Прізвище (через пробіл).",
+
+    photo_path = "assets/register.png"
+    photo_to_send = FSInputFile(photo_path)
+
+    await message.answer_photo(
+        photo=photo_to_send, 
+        caption="Нумо знайомитись! Напиши своє ім'я та прізвище у форматі: Богдан Ковальчук",
         parse_mode="HTML",
         reply_markup=ReplyKeyboardRemove()
     )
@@ -33,6 +47,9 @@ async def start_registration(message: types.Message, state: FSMContext):
 
 @router.message(Registration.name)
 async def process_name(message: types.Message, state: FSMContext):
+    if message.text is None:
+        await message.answer("🚫 Будь ласка, введи текстове ім’я.")
+        return
     name = message.text.strip()
     if not is_correct_text(name):
         await message.answer("🚫 Некоректне ім’я. Спробуй ще раз. Використовуй лише літери.")
@@ -40,12 +57,35 @@ async def process_name(message: types.Message, state: FSMContext):
 
     parts = name.split()
     if len(parts) != 2:
-        await message.answer("📝 Введи Ім’я та Прізвище (через пробіл). Формат: ім'я прізвище")
+        await message.answer("Напиши своє ім'я та прізвище у форматі: Богдан Ковальчук")
         return
 
     await state.update_data(name=name)
+    data = await state.get_data()
     await message.answer(
-        f"Приємно познайомитись, <b>{parts[0]}</b>!\nОбери курс, на якому навчаєшся:",
+        f"Приємно познайомитись, <b>{data['name'].split()[0]}!</b> Тепер напиши скільки тобі років!",
+        reply_markup=ReplyKeyboardRemove(),
+        parse_mode="HTML"
+    )
+    await state.set_state(Registration.age)
+
+@router.message(Registration.age)
+async def process_age(message: types.Message, state: FSMContext):
+    age_text = message.text.strip()
+    if not age_text.isdigit():
+        await message.answer("Напиши правильний вік (числом)")
+        return
+    age_int = int(age_text)
+    if age_int > 79:
+        await message.answer("Хей невже ти такий старий? Напиши справжній вік")
+        return
+    elif age_int < 13:
+        await message.answer("Хей невже ти такий малий? Напиши справжній вік")
+        return
+
+    await state.update_data(age=age_int)
+    await message.answer(
+        "Гарний вік! Тепер обери, на якому курсі ти навчаєшся😎",
         reply_markup=get_course_kb(),
         parse_mode="HTML"
     )
@@ -53,49 +93,59 @@ async def process_name(message: types.Message, state: FSMContext):
 
 @router.message(Registration.course)
 async def ask_university_or_finish(message: types.Message, state: FSMContext):
-    courses = ["🔹 1 курс", "🔹 2 курс", "🔹 3 курс", "🔹 4 курс", "🔹 Магістратура"]
-    special_cases = ["🔹 Не навчаюсь", "🔹 Ще у школі/коледжі"]
+    courses = ["1 курс", "2 курс", "3 курс", "4 курс", "Магістратура", "Ще у школі/коледжі", "Не навчаюсь"]
 
-    if message.text not in courses + special_cases:
+    if message.text not in courses:
         await message.answer("⚠️ Некоректні дані. Обери курс зі списку.")
+        return
+    
+    if message.text == "Не навчаюсь":
+        await message.answer(
+            "На жаль, ми проводимо змагання лише для студентів університетів.",
+            reply_markup=get_reg_kb()
+        )
+        await state.clear()
         return
 
     await state.update_data(course=message.text)
-
-    if message.text in special_cases:
-        data = await state.get_data()
-        await save_user_data(
-            user_id=message.from_user.id,
-            user_name=message.from_user.username,
-            name=data["name"],
-            course=data["course"],
-            university="Не вказано",
-            speciality="Не вказано",
-            team='-'
-        )
-        await message.answer(
-            "Чудово, тебе зареєстровано. 🎉\n\n"
-            "Тепер ти можеш перейти до <b>меню</b> і дізнатися більше 🔎.",
-            parse_mode="HTML",
-            reply_markup=main_menu_kb()
-        )
-        await state.clear()
-    else:
-        await message.answer("Оберіть свій університет:", reply_markup=get_uni_kb())
-        await state.set_state(Registration.university)
+  
+    await message.answer("Круто, а в якому університеті вчишся?", reply_markup=get_uni_kb())
+    await state.set_state(Registration.university)
 
 @router.message(Registration.university)
 async def ask_speciality(message: types.Message, state: FSMContext):
     text = message.text.strip()
-    unis = ["🎓 НУ “ЛП”", "🎓 ЛНУ ім. І. Франка", "🎓 УКУ", "🎓 ЛНАМ", "🎓 ЛДУБЖД", "🎓 ІТ Степ Університет", "🎓 Інший"]
+    unis = ["🎓 НУ “ЛП”", "🎓 ЛНУ ім. І. Франка", "🎓 УКУ", "🎓 Інший"]
 
+    if message.text == "🎓 Інший":
+        await message.answer("Вкажи назву свого університету:", reply_markup=ReplyKeyboardRemove())
+        await state.set_state(Registration.expect_custom_uni)
+        return
+    
     if message.text not in unis:
         await message.answer("⚠️ Некоректні дані. Обери університет зі списку.")
         return
 
+
     await state.update_data(university=text)
+
     await message.answer(
-        "Яка твоя спеціальність?\nНапиши її у форматі: СШІ / ІГДГ / ІБІС …",
+        "Супер, а на якій спеціальності свої роки проводиш? Напиши назву повністю, наприклад: Автоматизація, комп'ютерно інтегровані технології та робототехніка",
+        reply_markup=ReplyKeyboardRemove()
+    )
+    await state.set_state(Registration.speciality)
+
+@router.message(Registration.expect_custom_uni)
+async def process_custom_university(message: types.Message, state: FSMContext):
+    text = message.text.strip()
+    if not is_correct_text(text):
+        await message.answer("⚠️ Некоректна назва університету. Спробуй ще раз.")
+        return
+
+    await state.update_data(university=text)
+
+    await message.answer(
+        "Супер, а на якій спеціальності свої роки проводиш? Напиши назву повністю, наприклад: Автоматизація, комп'ютерно інтегровані технології та робототехніка",
         reply_markup=ReplyKeyboardRemove()
     )
     await state.set_state(Registration.speciality)
@@ -110,78 +160,57 @@ async def ask_where(message: types.Message, state: FSMContext):
     data = await state.get_data()
 
     await message.answer(
-        "✅ звідки ти знаєш нас?",
+        "Хммм, перспективненько😉А електронною поштою поділишся?",
+        parse_mode="HTML",
+        reply_markup=ReplyKeyboardRemove()
+    )
+    await state.set_state(Registration.email)
+
+@router.message(Registration.email)
+async def ask_approval(message: types.Message, state: FSMContext):
+    text = message.text.strip()
+    if not is_valid_email(text):
+        await message.answer("⚠️ Схоже, що дані введені неправильно. Спробуй ще раз.")
+        return
+    await state.update_data(email=text)
+    await message.answer(
+        "Ну ось ми і познайомились🧡.\n Тепер багато про тебе знаю. Даєш дозвіл для обробки персональної інформації?",
         parse_mode="HTML",
         reply_markup=where_kb()
-    )
-    await state.set_state(Registration.where_know)
+    ) 
+    await state.set_state(Registration.approval)
 
-@router.message(Registration.where_know)
-async def ask_phone(message: types.Message, state: FSMContext):
-    text = message.text.strip()
-
-    where = ["інста", "тікток", "постер", "інше"]
-
-    if message.text not in where:
-        await message.answer("⚠️ Некоректні дані. Обери опцію зі списку.")
-        return
-    if text == "інше":
-        await state.set_state(Registration.custom_where_know)
-        await message.answer("Напиши звідки:", reply_markup=ReplyKeyboardRemove())
-        return
-        return
-
-    await state.update_data(where_know=message.text)
-
-    await message.answer(
-        "Дай свій номер!!!!\nНатисни кнопку, щоб поділитися контактом.",
-        reply_markup=get_phone_kb()
-    )
-    await state.set_state(Registration.phone)
-# Handle custom 'where_know' input
-@router.message(Registration.custom_where_know)
-async def process_custom_where_know(message: types.Message, state: FSMContext):
-    text = message.text.strip()
-    if not is_correct_text(text):
-        await message.answer("⚠️ Некоректна відповідь. Спробуй ще раз.")
-        return
-
-    await state.update_data(where_know=text)
-    await message.answer(
-        "Дай свій номер!!!!\nНатисни кнопку, щоб поділитися контактом.",
-        reply_markup=get_phone_kb()
-    )
-    await state.set_state(Registration.phone)
-    await state.set_state(Registration.phone)
-
-@router.message(Registration.phone)
-async def finish_registration(message: types.Message, state: FSMContext):
-    # Перевірка, чи надіслано контакт
-    if not message.contact or not message.contact.phone_number:
-        await message.answer("⚠️ Будь ласка, надішли свій номер через кнопку 'Поділитися контактом', або у форматі +38-xxx-xxx-xxxx")
-        return
-
-    phone_number = message.contact.phone_number
-    await state.update_data(phone=phone_number)
-
-    data = await state.get_data()
-
-    await save_user_data(
-        user_id=message.from_user.id,
-        user_name=message.from_user.username,
-        name=data["name"],
-        course=data["course"],
-        university=data["university"],
-        speciality=data["speciality"],
-        where_know=data["where_know"],
-        phone=phone_number,
-        team='-'
-    )
-
-    await message.answer(
-        "Чудово, тебе зареєстровано. 🎉\n\n"
-        "Тепер ти можеш перейти до <b>меню</b> і дізнатися більше 🔎.",
-        parse_mode="HTML",
-        reply_markup=main_menu_kb()
-    )
-    await state.clear()
+@router.message(Registration.approval)
+async def process_approval(message: types.Message, state: FSMContext):
+    text = message.text.strip().lower()
+    if text == "так":
+        data = await state.get_data()
+        await save_user_data(
+            user_id=message.from_user.id,
+            user_name=message.from_user.username,
+            name=data["name"],
+            age=data["age"],
+            course=data["course"],
+            university=data["university"],
+            speciality=data["speciality"],
+            email=data["email"],
+            team='-'
+        )
+        await message.answer(
+            "Супер! Тепер ти майже учасник BECy.\n Але тобі також потрібна команда та CV!",
+            parse_mode="HTML",
+            reply_markup=main_menu_kb()
+        )
+        await state.clear()
+    elif text == "ні":
+        await message.answer(
+            "Для закінчення реєстрації нам потрібна ця згода",
+            parse_mode="HTML",
+            reply_markup=where_kb()
+        )
+    else:
+        await message.answer(
+            "Будь ласка, обери <b>Так</b> або <b>Ні</b>.",
+            parse_mode="HTML",
+            reply_markup=where_kb()
+        )

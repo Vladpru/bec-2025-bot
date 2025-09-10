@@ -1,7 +1,7 @@
 from aiogram import Router, types, F
-from aiogram.types import ReplyKeyboardRemove
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
+from aiogram.types import ReplyKeyboardRemove, FSInputFile
 import re
 from bot.keyboards.team import get_have_team_kb
 from bot.keyboards.no_team import get_not_team_kb
@@ -9,16 +9,16 @@ from bot.utils.database import get_user
 
 router = Router()
 
-@router.message(F.text=="Лінка на групу для пошуку команди")
+@router.message(F.text=="Пошук команди🔍")
 async def get_link(message: types.Message, state: FSMContext):
-    try:
-        await state.clear()
-        await message.answer("Ось лінка: ----", parse_mode="HTML")
-       
-    except Exception as e:
-        await message.answer("An error occurred")
-        await print(f"An error occurred: {str(e)}")
-        await state.clear()
+    await state.clear()
+    photo_path = "assets/register.png"
+    photo_to_send = FSInputFile(photo_path)
+    await message.answer_photo(
+        photo=photo_to_send,
+        caption="Не маєш команди? Не біда! Доєднайся в телеграм-чат та знайди її! Ось посилання:.....",
+        parse_mode="HTML"
+    )
 
 @router.message(F.text=="Моя команда")
 async def get_team(message: types.Message, state: FSMContext):
@@ -53,15 +53,3 @@ async def get_team(message: types.Message, state: FSMContext):
         await message.answer("An error occurred")
         await state.clear()
 
-@router.message(F.text=="Більше інфи")
-async def get_more_info(message: types.Message, state: FSMContext):
-    try:
-        await state.clear()
-        await message.answer("Більше інфииииии аоаоаоааоаа", parse_mode="HTML")
-
-        current_state = await state.get_state()
-        print(f"State after setting: {current_state}")
-    except Exception as e:
-        await message.answer("An error occurred")
-        await print(f"An error occurred: {str(e)}")
-        await state.clear()

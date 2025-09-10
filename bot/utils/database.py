@@ -18,16 +18,16 @@ async def get_database():
 
 #------------------------------------------------------------------------------------------------
 
-async def save_user_data(user_id, user_name, name, course, university, speciality, where_know, phone, team):
+async def save_user_data(user_id, user_name, name, age, course, university, speciality, email, team):
     user_data = {
         "telegram_id": user_id,
         "username": user_name,
         "name": name,
+        "age": age,
         "course": course,
         "university": university,
         "speciality": speciality,
-        "where_know": where_know,
-        "phone": phone,
+        "email": email,
         "team": team,
         "cv_file_path": None,
     }

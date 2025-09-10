@@ -13,9 +13,7 @@ async def cmd_start(message: types.Message):
     user_id = message.from_user.id
     if not await is_user_registered(user_id):
         await message.answer(
-            "Привіт!👋\n\n"
-            "Я – бот <b>BEC</b> й допоможу тобі дізнатися про всі наші активності\n\n"
-            "Щоб розпочати наше знайомство натисни <b>«Старт 🚀»</b>!",
+            "HELLO",
             reply_markup=get_reg_kb(),
             parse_mode="HTML"
         )
@@ -27,3 +25,4 @@ async def cmd_start(message: types.Message):
         "Знову привіт! 👋 Ви вже зареєстровані.",
         reply_markup=reply
     )
+
