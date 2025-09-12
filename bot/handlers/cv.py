@@ -10,7 +10,7 @@ from bot.utils.database import users_collection
 
 router = Router()
 
-@router.message(F.text == "CV")
+@router.message(F.text == "CV📜")
 async def cv_start(message: types.Message):
     user_id = message.from_user.id
     user_data = await users_collection.find_one({"telegram_id": user_id})

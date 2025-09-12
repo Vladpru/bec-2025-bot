@@ -76,10 +76,10 @@ async def process_age(message: types.Message, state: FSMContext):
         await message.answer("Напиши правильний вік (числом)")
         return
     age_int = int(age_text)
-    if age_int > 79:
+    if age_int > 30:
         await message.answer("Хей невже ти такий старий? Напиши справжній вік")
         return
-    elif age_int < 13:
+    elif age_int < 14:
         await message.answer("Хей невже ти такий малий? Напиши справжній вік")
         return
 
@@ -93,7 +93,7 @@ async def process_age(message: types.Message, state: FSMContext):
 
 @router.message(Registration.course)
 async def ask_university_or_finish(message: types.Message, state: FSMContext):
-    courses = ["1 курс", "2 курс", "3 курс", "4 курс", "Магістратура", "Ще у школі/коледжі", "Не навчаюсь"]
+    courses = ["1 курс", "2 курс", "3 курс", "4 курс", "Магістратура", "Інше", "Не навчаюсь"]
 
     if message.text not in courses:
         await message.answer("⚠️ Некоректні дані. Обери курс зі списку.")
@@ -109,7 +109,7 @@ async def ask_university_or_finish(message: types.Message, state: FSMContext):
 
     await state.update_data(course=message.text)
   
-    await message.answer("Круто, а в якому університеті вчишся?", reply_markup=get_uni_kb())
+    await message.answer("Круто, а в якому навчальному закладі вчишся?", reply_markup=get_uni_kb())
     await state.set_state(Registration.university)
 
 @router.message(Registration.university)
@@ -118,7 +118,7 @@ async def ask_speciality(message: types.Message, state: FSMContext):
     unis = ["🎓 НУ “ЛП”", "🎓 ЛНУ ім. І. Франка", "🎓 УКУ", "🎓 Інший"]
 
     if message.text == "🎓 Інший":
-        await message.answer("Вкажи назву свого університету:", reply_markup=ReplyKeyboardRemove())
+        await message.answer("Вкажи назву свого навчального закладу:", reply_markup=ReplyKeyboardRemove())
         await state.set_state(Registration.expect_custom_uni)
         return
     
@@ -145,7 +145,7 @@ async def process_custom_university(message: types.Message, state: FSMContext):
     await state.update_data(university=text)
 
     await message.answer(
-        "Супер, а на якій спеціальності свої роки проводиш? Напиши назву повністю, наприклад: Автоматизація, комп'ютерно інтегровані технології та робототехніка",
+        "Супер, а на якій спеціальності свої роки проводиш?\nНапиши назву повністю, наприклад: Автоматизація, комп'ютерно інтегровані технології та робототехніка",
         reply_markup=ReplyKeyboardRemove()
     )
     await state.set_state(Registration.speciality)
@@ -157,8 +157,6 @@ async def ask_where(message: types.Message, state: FSMContext):
         return
 
     await state.update_data(speciality=message.text)
-    data = await state.get_data()
-
     await message.answer(
         "Хммм, перспективненько😉А електронною поштою поділишся?",
         parse_mode="HTML",
@@ -170,11 +168,11 @@ async def ask_where(message: types.Message, state: FSMContext):
 async def ask_approval(message: types.Message, state: FSMContext):
     text = message.text.strip()
     if not is_valid_email(text):
-        await message.answer("⚠️ Схоже, що дані введені неправильно. Спробуй ще раз.")
+        await message.answer("⚠️ Схоже, що дані введені неправильно. Спробуй ще раз. у форматі example@mail.com")
         return
     await state.update_data(email=text)
     await message.answer(
-        "Ну ось ми і познайомились🧡.\n Тепер багато про тебе знаю. Даєш дозвіл для обробки персональної інформації?",
+        "Ну ось ми і познайомились🧡.\nТепер багато про тебе знаю. Даєш дозвіл для обробки персональної інформації?",
         parse_mode="HTML",
         reply_markup=where_kb()
     ) 
@@ -197,7 +195,7 @@ async def process_approval(message: types.Message, state: FSMContext):
             team='-'
         )
         await message.answer(
-            "Супер! Тепер ти майже учасник BECy.\n Але тобі також потрібна команда та CV!",
+            "Супер! Тепер ти майже учасник BECy.\nАле тобі також потрібна команда та CV!",
             parse_mode="HTML",
             reply_markup=main_menu_kb()
         )

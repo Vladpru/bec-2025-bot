@@ -1,17 +1,15 @@
 from aiogram import Router, types, F
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
-from aiogram.types import ReplyKeyboardRemove
-from bot.utils.database import get_team, exit_team, change_stack
-from bot.keyboards.registration import main_menu_kb
-from bot.handlers.registration import is_correct_text
+from bot.utils.database import get_team, exit_team, get_team_category
+from bot.keyboards.no_team import get_not_team_kb
 
 router = Router()
 
 class Team(StatesGroup):
     waiting_for_stack_input = State()
 
-@router.message(F.text == "Інфа про команду")
+@router.message(F.text == "Інформація про командуℹ️")
 async def info_team_handler(message: types.Message, state: FSMContext):
     from bot.utils.database import users_collection
     user_id = message.from_user.id
@@ -34,7 +32,6 @@ async def info_team_handler(message: types.Message, state: FSMContext):
         await message.answer(
             f"Команда '{team['team_name']}'!\n\n"
             f"Категорія: {team['category']}\n\n"
-            f"Технології: {team['technologies']}\n\n"
             f"Учасники: {members_str}",
             parse_mode="HTML",
         )
@@ -44,14 +41,14 @@ async def info_team_handler(message: types.Message, state: FSMContext):
             parse_mode="HTML"
         )
 
-@router.message(F.text == "вийти з команди")
+@router.message(F.text == "Вийти з команди🚪")
 async def exit_team_handler(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
     if await exit_team(user_id):
         await message.answer(
-            "Успішно вийшов",
+            "Успішно вийшли з команди",
             parse_mode="HTML",
-            reply_markup=main_menu_kb()
+            reply_markup=get_not_team_kb()
         )
     else:
         await message.answer(
@@ -62,58 +59,18 @@ async def exit_team_handler(message: types.Message, state: FSMContext):
 @router.message(F.text == "Тестове завдання")
 async def test_task_handler(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
-    if await exit_team(user_id):
+    if await get_team_category(user_id) == "Innovative Design":
         await message.answer(
-            "Поки тестового нема",
+            "Поки тестового нема Innovative Design",
+            parse_mode="HTML",
+        )
+    if await get_team_category(user_id) == "Team Design":
+        await message.answer(
+            "Поки тестового нема Team Design",
             parse_mode="HTML",
         )
     else:
         await message.answer(
             "Технічна помилка, спробуйте пізніше",
-            parse_mode="HTML"
-        )
-
-@router.message(F.text == "змінити стек технологій")
-async def change_stack_handler(message: types.Message, state: FSMContext):
-    try:
-        await message.answer(
-            "Введіть новий стек технологій (через кому):",
-            parse_mode="HTML",
-            reply_markup=ReplyKeyboardRemove()
-        )
-        await state.set_state(Team.waiting_for_stack_input)
-    except Exception as e:
-        await message.answer(
-            "Виникла технічна помилка. Спробуйте ще раз пізніше.",
-            parse_mode="HTML"
-        )
-
-@router.message(Team.waiting_for_stack_input)
-async def process_stack_input(message: types.Message, state: FSMContext):
-    user_id = message.from_user.id
-    stack = message.text.strip()
-    try:
-        # if not is_correct_text(stack):
-        #     await message.answer(
-        #         "Некоректно введено стек технологій. Спробуйте ще раз.",
-        #         parse_mode="HTML"
-        #     )
-        #     return
-
-        if await change_stack(user_id, stack):
-            await message.answer(
-                "Стек технологій успішно змінено",
-                parse_mode="HTML",
-                reply_markup=main_menu_kb()
-            )
-            await state.clear()
-        else:
-            await message.answer(
-                "Некоректно введено стек технологій. Спробуйте ще раз.",
-                parse_mode="HTML"
-            )
-    except Exception as e:
-        await message.answer(
-            "Виникла технічна помилка при зміні стеку. Спробуйте ще раз пізніше.",
             parse_mode="HTML"
         )

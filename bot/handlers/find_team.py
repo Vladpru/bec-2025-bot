@@ -11,10 +11,10 @@ class FindTeam(StatesGroup):
     team_name = State()
     password = State()
 
-@router.message(F.text == "Знайти команду")
+@router.message(F.text == "Увійти в команду🏅")
 async def find_team_start(message: types.Message, state: FSMContext):
     await state.clear()
-    await message.answer("Введіть назву команди:", reply_markup=get_back_kb())
+    await message.answer("Спочатку напиши назву команди", reply_markup=get_back_kb())
     await state.set_state(FindTeam.team_name)
 
 @router.message(FindTeam.team_name)
@@ -28,7 +28,7 @@ async def process_team_name(message: types.Message, state: FSMContext):
         await message.answer("Команду не знайдено. Введіть назву ще раз або натисніть 'Назад'.", reply_markup=get_back_kb())
         return
     await state.update_data(team=team)
-    await message.answer("Введіть пароль команди:", reply_markup=get_back_kb())
+    await message.answer(f"Тепер введи пароль, для входу в команду {team['team_name']}", reply_markup=get_back_kb())
     await state.set_state(FindTeam.password)
 
 @router.message(FindTeam.password)
@@ -40,8 +40,8 @@ async def process_team_password(message: types.Message, state: FSMContext):
     data = await state.get_data()
     team = data.get("team")
     if not team or message.text != team["password"]:
-        await message.answer("Невірний пароль. Спробуйте ще раз або натисніть 'Назад'.", reply_markup=get_back_kb())
+        await message.answer("Неправильний пароль. Спробуйте ще раз або натисніть 'Назад'.", reply_markup=get_back_kb())
         return
     await add_user_to_team(message.from_user.id, team["team_id"])
-    await message.answer(f"Ви приєдналися до команди '{team['team_name']}'!", reply_markup=get_have_team_kb())
+    await message.answer(f"Вітаю в команді {team['team_name']}!", reply_markup=get_have_team_kb())
     await state.clear()

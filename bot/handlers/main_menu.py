@@ -2,7 +2,6 @@ from aiogram import Router, types, F
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import ReplyKeyboardRemove, FSInputFile
-import re
 from bot.keyboards.team import get_have_team_kb
 from bot.keyboards.no_team import get_not_team_kb
 from bot.utils.database import get_user
@@ -12,15 +11,15 @@ router = Router()
 @router.message(F.text=="Пошук команди🔍")
 async def get_link(message: types.Message, state: FSMContext):
     await state.clear()
-    photo_path = "assets/register.png"
+    photo_path = "assets/find_team.png"
     photo_to_send = FSInputFile(photo_path)
     await message.answer_photo(
         photo=photo_to_send,
-        caption="Не маєш команди? Не біда! Доєднайся в телеграм-чат та знайди її! Ось посилання:.....",
+        caption=f"Не маєш команди? Не біда! Доєднайся в телеграм-чат та знайди її! Ось посилання:<a href='https://t.me/+EqpOjlPkgRtjYmEy'>Приєднатися</a>",
         parse_mode="HTML"
     )
 
-@router.message(F.text=="Моя команда")
+@router.message(F.text=="Моя команда🏆")
 async def get_team(message: types.Message, state: FSMContext):
     try:
         await state.clear()
@@ -44,7 +43,7 @@ async def get_team(message: types.Message, state: FSMContext):
             )
         else:
             await message.answer(
-                ' В тебе ще нема команди! ',
+                ' В тебе ще нема команди!\nЩоб взяти участь у змаганнях тобі потрібна команда! Вона повинна складатися з 4 учасників. Маєш свою непереможну четвірку? ',
                 parse_mode="HTML",
                 reply_markup=get_not_team_kb()
             )

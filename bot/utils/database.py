@@ -40,7 +40,7 @@ async def save_user_data(user_id, user_name, name, age, course, university, spec
 
 #------------------------------------------------------------------------------------------------
 
-async def save_team_data(team_id, team_name, category, password, technologies, members_telegram_ids):
+async def save_team_data(team_id, team_name, category, password, members_telegram_ids):
     members = []
     for telegram_id in members_telegram_ids:
         user = await users_collection.find_one({"telegram_id": telegram_id})
@@ -52,7 +52,6 @@ async def save_team_data(team_id, team_name, category, password, technologies, m
         "team_name": team_name,
         "category": category,
         "password": password,
-        "technologies": technologies,
         "members": members,
         "is_participant": False,
         "test_task_status": False
@@ -74,29 +73,47 @@ async def get_team(user_id):
     user = await get_user(user_id)
     return await teams_collection.find_one({"members": user['_id']})
 
+async def get_team_category(user_id):
+    team = await get_team(user_id)
+    if team:
+        return team.get("category")
+
 async def exit_team(user_id) -> bool:
     user = await get_user(user_id)
     if not user:
         return False
     
     user_object_id = user["_id"]
+    telegram_id = user["telegram_id"] 
+
+    current_team = await teams_collection.find_one({"members": user_object_id})
+    if not current_team:
+        current_user = await users_collection.find_one({"telegram_id": telegram_id})
+        if current_user and current_user.get("team") != "-":
+            await users_collection.update_one(
+                {"telegram_id": telegram_id},
+                {"$set": {"team": "-"}}
+            )
+        return 'already_out' 
 
     res = await teams_collection.update_one(
-        {"members": user_object_id}, 
-        {"$pull": {"members": user_object_id}}  
+        {"_id": current_team["_id"]}, 
+        {"$pull": {"members": user_object_id}}
     )
-
+    
+    if res.modified_count == 0: 
+        return False
+    
     await users_collection.update_one(
-        {"telegram_id": user["telegram_id"]},
+        {"telegram_id": telegram_id},
         {"$set": {"team": "-"}}
     )
-
-    if res.matched_count > 0:
-        team = await teams_collection.find_one({"members": user_object_id})
-        if team and (not team.get("members") or len(team.get("members", [])) == 0):
-            await teams_collection.delete_one({"_id": team["_id"]})
-        return True
-    return False
+    
+    updated_team = await teams_collection.find_one({"_id": current_team["_id"]})
+    if updated_team and len(updated_team.get("members", [])) == 0:
+        await teams_collection.delete_one({"_id": current_team["_id"]})
+    
+    return True
 
 async def update_user_team(user_id, team_id):
     await users_collection.update_one(
@@ -151,23 +168,6 @@ async def is_user_in_team(user_id):
 async def get_team_by_user_id(user_id):
     user = await users_collection.find_one({"telegram_id": user_id})
     return await teams_collection.find_one({"members": user["_id"]})
-
-async def change_stack(user_id, stack):
-    user = await users_collection.find_one({"telegram_id": user_id})
-    if not user:
-        return False
-    
-    user_object_id = user["_id"]
-    team = await teams_collection.find_one({"members": user_object_id})
-    
-    if not team:
-        return False
-    
-    result = await teams_collection.update_one(
-        {"members": user_object_id},
-        {"$set": {"technologies": stack}}
-    )
-    return result.matched_count > 0
 
 async def is_user_registered(user_id):
     user = await users_collection.find_one({"telegram_id": user_id})
