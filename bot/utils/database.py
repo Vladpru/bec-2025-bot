@@ -1,5 +1,7 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 from config import load_config
+from aiogram.exceptions import TelegramForbiddenError
+import asyncio 
 
 config = load_config()
 
@@ -157,6 +159,7 @@ async def add_user_to_team(user_id, team_id):
         {"$set": {"team": team_id}}
     )
     return True
+
 #------------------------------------------------------------------------------------------------
 
 async def is_user_in_team(user_id):
@@ -172,3 +175,9 @@ async def get_team_by_user_id(user_id):
 async def is_user_registered(user_id):
     user = await users_collection.find_one({"telegram_id": user_id})
     return user is not None
+
+#------------------------------------------------------------------------------------------------
+
+async def get_all_user_ids() -> list[int]:
+    cursor = users_collection.find({}, {"telegram_id": 1})
+    return [int(doc["telegram_id"]) async for doc in cursor]

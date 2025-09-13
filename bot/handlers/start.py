@@ -1,5 +1,4 @@
-from aiogram import Router, types
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram import Router, types, F
 from aiogram.filters import CommandStart
 from bot.keyboards.team import get_have_team_kb
 from bot.keyboards.no_team import get_not_team_kb
@@ -7,7 +6,7 @@ from bot.keyboards.registration import get_reg_kb
 from bot.utils.database import get_user, is_user_in_team, is_user_registered   
 
 router = Router()
-
+    
 @router.message(CommandStart())
 async def cmd_start(message: types.Message):
     user_id = message.from_user.id

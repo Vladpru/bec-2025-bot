@@ -1,6 +1,7 @@
 import asyncio
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
+from bot.admin import admin_start
 from config import load_config
 from bot.middleware.check_user import AuthMiddleware
 from bot.handlers import cv, registration, start, main_menu, create_team, team, about_event, find_team, create_cv
@@ -28,6 +29,7 @@ async def main():
         team.router,
         cv.router,
         create_cv.router,
+        admin_start.router
     )
     
     await bot.delete_webhook(drop_pending_updates=True)
