@@ -1,12 +1,12 @@
 from aiogram import Router, types, F
 from aiogram.types import ReplyKeyboardRemove
 from aiogram.fsm.context import FSMContext
-from bot.keyboards.cv_keyboard import get_cv_kb
+from bot.keyboards.cv_keyboard import get_back_cv_kb, get_cv_kb
 from bot.handlers.registration import is_correct_text
+from bot.keyboards.registration import main_menu_kb
 from bot.utils.cv_db import update_cv_file_path, add_cv
 from bot.keyboards.team import get_have_team_kb
-from bot.keyboards.no_team import get_not_team_kb
-from bot.utils.database import users_collection
+from bot.utils.database import is_user_in_team, users_collection
 
 router = Router()
 
@@ -27,20 +27,12 @@ async def cv_start(message: types.Message):
             reply_markup=get_cv_kb()
         )
 
-@router.message(F.text == "Назад")
+@router.message(F.text == "Назад до меню🔙")
 async def cv_back(message: types.Message, state: FSMContext):
-    user_id = message.from_user.id
-    user_data = await users_collection.find_one({"telegram_id": user_id})
-    if hasattr(user_data, "team") and user_data.team != '-':
-        await message.answer(
-            "Ви повернулись назад до меню",  
-            reply_markup=get_have_team_kb()
-        )
-    else:
-        await message.answer(
-            "Ви повернулись назад до меню",  
-            reply_markup=get_not_team_kb()
-        )
+    await message.answer(
+        "Ви повернулись назад до меню",  
+        reply_markup=main_menu_kb()
+    )
 
 @router.message(F.text == "📤 Надіслати готове CV")
 async def cv_send(message: types.Message, state: FSMContext):   
@@ -50,16 +42,27 @@ async def cv_send(message: types.Message, state: FSMContext):
         )
         return
     await message.answer(
-        "Будь ласка, надішліть своє CV у форматі PDF або DOCX. "
+        "Будь ласка, надішліть своє CV у форматі PDF. "
         "Переконайтеся, що файл не містить особистої інформації, "
         "такої як номер телефону чи адреса електронної пошти.",
-        reply_markup=ReplyKeyboardRemove()
+        reply_markup=get_back_cv_kb()
     )
+
+@router.message(F.text == "Назад🔙")
+async def cv_back(message: types.Message, state: FSMContext):
+    await message.answer(
+        "Ви повернулися назад до меню CV.",
+        reply_markup=get_cv_kb()
+    )
+
 
 @router.message(F.document)
 async def handle_cv_file(message: types.Message):
-    if message.document.mime_type != "application/pdf":
-        await message.answer("❗ Упс, схоже, що формат файлу неправильний. Спробуй ще раз, використовуючи PDF формат.")
+    file_name = message.document.file_name or ""
+    mime_type = (message.document.mime_type or "").lower()
+
+    if mime_type != "application/pdf" and not file_name.lower().endswith(".pdf"):
+        await message.answer("❗ Упс, дозволений тільки PDF формат. Спробуй ще раз і надішли PDF.")
         return
 
     max_file_size = 10 * 1024 * 1024  # 10 МБ
@@ -70,15 +73,20 @@ async def handle_cv_file(message: types.Message):
     try:
         file_id = message.document.file_id
         file = await message.bot.get_file(file_id)
-        if file.file_path is None or not file.file_path:
+        if not file.file_path:
             await message.answer("❗ Помилка: не вдалося отримати шлях до файлу. Спробуй ще раз.")
             return
         print(f"File ID: {file_id}, File Path: {file.file_path}")
         await message.bot.download_file(file.file_path, timeout=30)
-    except Exception as e:
+    except Exception:
         await message.answer("🕒 Файл завантажується дуже довго… Перевір розмір і спробуй ще раз!")
         return
+    
     user_id = message.from_user.id
-    await update_cv_file_path(message.from_user.id, file_id)
+    await update_cv_file_path(user_id, file_id)
     await add_cv(user_id=user_id, cv_file_id=file_id)
     await message.answer("✅ CV завантажено! 🎉", reply_markup=get_have_team_kb())
+
+@router.message(F.photo)
+async def reject_photos(message: types.Message):
+    await message.answer("❗ Будь ласка, надішли CV у форматі PDF, а не фото 🙏")

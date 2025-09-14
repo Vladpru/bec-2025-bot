@@ -134,6 +134,10 @@ async def count_users():
 
 async def get_all_users():
     return users_collection.find({})
+
+async def get_all_users_with_cv():
+    return users_collection.find({"cv_file_path": {"$ne": None}})
+
 async def count_all_users():
     return await users_collection.count_documents({})
 
@@ -166,7 +170,7 @@ async def is_user_in_team(user_id):
     user = await users_collection.find_one({"telegram_id": user_id})
     if not user:
         return False
-    return user.get("team") not in ["-", None]
+    return user.get("team") not in ["-"]
 
 async def get_team_by_user_id(user_id):
     user = await users_collection.find_one({"telegram_id": user_id})

@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.exceptions import TelegramForbiddenError
-from bot.utils.database import get_all_active_users, get_all_user_ids
+from bot.utils.database import get_all_user_ids, get_all_users_with_cv
 
 load_dotenv()
 router = Router()
@@ -30,6 +30,30 @@ async def start_spam(message: types.Message, state: FSMContext):
   if message.from_user.id == admin_id:
     await message.answer("Введіть текст розсилки або 'Назад' для відміни:")
     await state.set_state(SpamStates.waiting_for_message)
+
+@router.message(F.text == "Отримати всі CV")
+async def get_all_cvs(message: types.Message):
+    admin_id = int(os.getenv("ADMIN_ID"))
+    if message.from_user.id != admin_id:
+        return
+
+    users_cursor = await get_all_users_with_cv()
+    users = await users_cursor.to_list(length=None)
+
+    if not users:
+        await message.answer("Немає завантажених CV.")
+        return
+
+    for user in users:
+        file_id = user.get("cv_file_path")
+        username = user.get("username", "невідомо")
+        user_id = user.get("telegram_id", "null")
+
+        if file_id:
+            await message.answer_document(
+                document=file_id,
+                caption=f"username: {username}\nid: {user_id}"
+            )
 
 @router.message(SpamStates.waiting_for_message)
 async def send_spam(message: types.Message, state: FSMContext, bot):

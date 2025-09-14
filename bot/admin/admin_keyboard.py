@@ -5,6 +5,7 @@ def get_admin_kb():
         keyboard=[
             [KeyboardButton(text="Розсилка")],
             [KeyboardButton(text="Статистика")],
+            [KeyboardButton(text="Отримати всі CV")],
         ],
         resize_keyboard=True
     )

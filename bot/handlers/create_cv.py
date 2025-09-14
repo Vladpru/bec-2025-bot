@@ -13,6 +13,12 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from aiogram.types import BufferedInputFile
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
+pdfmetrics.registerFont(TTFont("DejaVuSans", "assets/fonts/DejaVuSans.ttf"))
+pdfmetrics.registerFont(TTFont("DejaVuSans-Bold", "assets/fonts/DejaVuSans-Bold.ttf"))
+
 
 router = Router()
 
@@ -20,8 +26,10 @@ class CVStates(StatesGroup):
     position = State()
     languages = State()
     education = State()
-    experience = State()
+
+    speciality = State()
     skills = State()
+    experience = State()
     contacts = State()
     about = State()
     confirm = State()
@@ -76,7 +84,7 @@ async def process_languages_input(message: types.Message, state: FSMContext):
 
     await state.update_data(languages=message.text)
     await message.answer(
-        "Ваша освіта?",
+        "Напиши в якому університеті ти вчишся",
         parse_mode="HTML",
         reply_markup=get_back_kb()
     )
@@ -86,17 +94,17 @@ async def process_languages_input(message: types.Message, state: FSMContext):
 async def process_education_input(message: types.Message, state: FSMContext):
     await state.update_data(education=message.text)
     await message.answer(
-        "Ваш досвід роботи?",
+        "На якій спеціальності вчишся? Також згадай про курси, які проходив!",
         parse_mode="HTML",
         reply_markup=get_back_kb()
     )
-    await state.set_state(CVStates.experience)
+    await state.set_state(CVStates.speciality)
 
-@router.message(CVStates.experience)
-async def process_experience_input(message: types.Message, state: FSMContext):
-    await state.update_data(experience=message.text)
+@router.message(CVStates.speciality)
+async def process_speciality_input(message: types.Message, state: FSMContext):
+    await state.update_data(speciality=message.text)
     await message.answer(
-        "Ваші навички?",
+        "Розкажи про свої Hard і Soft skills",
         parse_mode="HTML",
         reply_markup=get_back_kb()
     )
@@ -106,17 +114,17 @@ async def process_experience_input(message: types.Message, state: FSMContext):
 async def process_skills_input(message: types.Message, state: FSMContext):
     await state.update_data(skills=message.text)
     await message.answer(
-        "Ваші контакти?",
+        "Чи працював вже десь? Обов'язково напиши про це! Якщо ще не маєш досвіду роботи напиши 'НІ'",
         parse_mode="HTML",
         reply_markup=get_back_kb()
     )
-    await state.set_state(CVStates.contacts)
+    await state.set_state(CVStates.experience)
 
-@router.message(CVStates.contacts)
-async def process_contacts_input(message: types.Message, state: FSMContext):
-    await state.update_data(contacts=message.text)
+@router.message(CVStates.experience)
+async def process_experience_input(message: types.Message, state: FSMContext):
+    await state.update_data(experience=message.text)
     await message.answer(
-        "Розкажіть про себе",
+        "Тепер розкажи трохи про себе!",
         parse_mode="HTML",
         reply_markup=get_back_kb()
     )
@@ -126,11 +134,21 @@ async def process_contacts_input(message: types.Message, state: FSMContext):
 async def process_about_input(message: types.Message, state: FSMContext):
     await state.update_data(about=message.text)
     await message.answer(
+        "Супер, залиш контактик: номер телефону та електронну пошту. За бажанням, можеш додати лінкедин.",
+        parse_mode="HTML",
+        reply_markup=get_back_kb()
+    )
+    await state.set_state(CVStates.contacts)
+
+@router.message(CVStates.contacts)
+async def process_contacts_input(message: types.Message, state: FSMContext):
+    await state.update_data(contacts=message.text)
+    await message.answer(
         "Чи все правильно?",
         parse_mode="HTML",
         reply_markup=get_is_correct_kb()
     )
-    await state.clear()
+    await state.set_state(CVStates.confirm)
 
 @router.message(F.text == "Ні")
 async def process_confirm_no(message: types.Message, state: FSMContext):
@@ -160,32 +178,32 @@ async def process_confirm_yes(message: types.Message, state: FSMContext):
         styles = getSampleStyleSheet()
         story = []
 
-        # Стиль для заголовка (ім'я)
         title_style = ParagraphStyle(
             'TitleStyle',
             parent=styles['Heading1'],
             fontSize=24,
-            textColor="#111A94",
+            textColor="#F5A020",
             spaceAfter=18,
-            alignment=1  # Центрування
+            alignment=1,
+            fontName="DejaVuSans-Bold"   # ✅ заміна
         )
         # Стиль для підзаголовків (пункти CV)
         heading_style = ParagraphStyle(
             'HeadingStyle',
             parent=styles['Heading2'],
             fontSize=16,
-            textColor="#000000",  # Змінили на чорний для чистого вигляду
+            textColor="#000000",
             spaceAfter=10,
-            fontName="Helvetica-Bold"  # Жирний шрифт без HTML
+            fontName="DejaVuSans-Bold"   # ✅ заміна
         )
-        # Стиль для тексту
+
         body_style = ParagraphStyle(
             'BodyStyle',
             parent=styles['Normal'],
             fontSize=12,
             leading=16,
             spaceAfter=8,
-            fontName="Helvetica"  # Звичайний шрифт
+            fontName="DejaVuSans"        # ✅ заміна
         )
 
         # Додаємо ім'я як заголовок
@@ -197,6 +215,7 @@ async def process_confirm_yes(message: types.Message, state: FSMContext):
             ("Бажана посада", data.get("position", "Не вказано")),
             ("Володіння мовами", data.get("languages", "Не вказано")),
             ("Освіта", data.get("education", "Не вказано")),
+            ("Спеціальність", data.get("speciality", "Не вказано")),
             ("Досвід роботи", data.get("experience", "Не вказано")),
             ("Навички", data.get("skills", "Не вказано")),
             ("Про кандидата", data.get("about", "Не вказано")),
