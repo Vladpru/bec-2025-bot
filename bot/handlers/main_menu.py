@@ -42,14 +42,16 @@ async def get_team(message: types.Message, state: FSMContext):
         
         team_status = user_data.get('team','-')
         if team_status != '-':
-            await message.answer(
-                ' В тебе вже є команда! ',
+            await message.answer_photo(
+                photo=FSInputFile("assets/team.png"),
+                caption=' В тебе вже є команда! ',
                 parse_mode="HTML",
                 reply_markup=get_have_team_kb()
             )
         else:
-            await message.answer(
-                ' В тебе ще нема команди!\nЩоб взяти участь у змаганнях тобі потрібна команда! Вона повинна складатися з 4 учасників. Маєш свою непереможну четвірку? ',
+            await message.answer_photo(
+                photo=FSInputFile("assets/team.png"),
+                caption=' В тебе ще нема команди!\nЩоб взяти участь у змаганнях тобі потрібна команда! Вона повинна складатися з 4 учасників. Маєш свою непереможну четвірку? ',
                 parse_mode="HTML",
                 reply_markup=get_not_team_kb()
             )

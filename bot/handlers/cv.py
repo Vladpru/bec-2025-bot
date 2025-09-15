@@ -7,6 +7,7 @@ from bot.keyboards.registration import main_menu_kb
 from bot.utils.cv_db import update_cv_file_path, add_cv
 from bot.keyboards.team import get_have_team_kb
 from bot.utils.database import is_user_in_team, users_collection
+from aiogram.types import FSInputFile
 
 router = Router()
 
@@ -15,14 +16,16 @@ async def cv_start(message: types.Message):
     user_id = message.from_user.id
     user_data = await users_collection.find_one({"telegram_id": user_id})
     if user_data and user_data.get("cv_file_path") is not None:
-        await message.answer(
-            "Ви вже відправили CV, хочете ще раз відправити?",
+        await message.answer_photo(
+            photo=FSInputFile("assets/cv.png"),
+            caption="Ви вже відправили CV, хочете ще раз відправити?",
             parse_mode="HTML",
             reply_markup=get_cv_kb()
         )
     else:
-        await message.answer(
-            "У цьому меню ви зможете відправити CV! Воно може зацікавити роботодавців, що може змінити ваше життя =)",
+        await message.answer_photo(
+            photo=FSInputFile("assets/cv.png"),
+            caption="У цьому меню ви зможете відправити CV! Воно може зацікавити роботодавців, що може змінити ваше життя =)",
             parse_mode="HTML",
             reply_markup=get_cv_kb()
         )
