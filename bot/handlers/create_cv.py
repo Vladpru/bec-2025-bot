@@ -53,35 +53,37 @@ async def process_position_input(message: types.Message, state: FSMContext):
         return
     await state.update_data(position=message.text)
     await message.answer(
-        "Якими мовами ти володієш. Вкажи рівень володіння. Наприклад: українська — рідна, англійська — B2.",
+        "Якими мовами ти володієш. Вкажи рівень володіння. Наприклад: українська - рідна, англійська - B2.",
         parse_mode="HTML",
         reply_markup=get_back_kb()
     )
     await state.set_state(CVStates.languages)
 
+import re # Переконайтесь, що re імпортовано
+
 @router.message(CVStates.languages)
 async def process_languages_input(message: types.Message, state: FSMContext):
-    # You may need to import these from your menu module
-    
-    if not is_correct_text(message.text):
-        await message.answer("⚠️ Схоже, що дані введені неправильно. Спробуй ще раз!")
-        return
 
     VALID_LEVELS = {"A1", "A2", "B1", "B2", "C1", "C2", "А1", "А2", "В1", "В2", "С1", "С2"}
     text = message.text.lower()
-    all_levels_raw = re.findall(r'\b([a-zA-ZА-Яа-я][0-9])\b', message.text)
+    
+    all_levels_raw = re.findall(r'\b([a-zA-Zа-яА-Я][12])\b', message.text)
     all_levels_upper = [level.upper() for level in all_levels_raw]
+    
     has_native = "рідна" in text
-    valid_levels = [level for level in all_levels_upper if level in VALID_LEVELS]
-    invalid_levels = [level for level in all_levels_upper if level not in VALID_LEVELS]
-
-    if not has_native and not all_levels_raw:
-        await message.answer("⚠️ Вкажи рівень володіння. Наприклад: українська — рідна, англійська — B2.")
-        return
-    if invalid_levels or (not has_native and not valid_levels):
-        await message.answer("⚠️ Неправильний формат рівня. Спробуй ще раз!")
+    
+    # Перевіряємо, чи є хоч якісь дані для аналізу
+    if not has_native and not all_levels_upper:
+        await message.answer("⚠️ Вкажіть рівень володіння. Наприклад: українська - рідна, англійська - B2.")
         return
 
+    # Перевіряємо, чи всі знайдені рівні є валідними
+    has_invalid_levels = any(level not in VALID_LEVELS for level in all_levels_upper)
+    if has_invalid_levels:
+        await message.answer("⚠️ Здається, ви вказали неправильний рівень (наприклад, 'B3' або 'D1'). Дозволені рівні: A1, A2, B1, B2, C1, C2.")
+        return
+
+    # Якщо все добре, продовжуємо
     await state.update_data(languages=message.text)
     await message.answer(
         "Напиши в якому університеті ти вчишся",
